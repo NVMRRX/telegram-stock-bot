@@ -3,6 +3,8 @@ import requests
 import asyncio
 from telegram import Bot, Update
 from telegram.ext import Application, CommandHandler
+from flask import Flask
+import threading
 
 # Configuration du bot
 TOKEN = "7869876698:AAFQmdneS0nSyDI36M0wPyAjnxQx3Mw91Mo"
@@ -33,7 +35,7 @@ async def check_stock():
                 in_stock = "Prévenez-moi" not in response.text
                 
                 if in_stock and previous_stock[product]:
-                    message = f"🔥 {product} est disponible ! FONCE !"
+                    message = f"\U0001F525 {product} est disponible ! FONCE !"
                     await bot.send_message(chat_id=CHAT_ID, text=message)
                 previous_stock[product] = in_stock
             
@@ -53,7 +55,7 @@ async def check_stock_opaque():
             in_stock = "Prévenez-moi" not in response.text
             
             if in_stock and previous_stock[PRODUCT_OPAQUE]:
-                message = f"🔥 {PRODUCT_OPAQUE} est disponible ! FONCE !"
+                message = f"\U0001F525 {PRODUCT_OPAQUE} est disponible ! FONCE !"
                 await bot.send_message(chat_id=CHAT_ID, text=message)
             previous_stock[PRODUCT_OPAQUE] = in_stock
         
@@ -77,20 +79,28 @@ async def manual_stock(update: Update, context):
         messages.append(f"{product} : {status}")
     await update.message.reply_text("\n".join(messages))
 
-async def status(update: Update, context):
-    """Commande !status pour vérifier que le bot fonctionne."""
-    await update.message.reply_text("✅ Le bot est en ligne et fonctionne normalement.")
+def run_flask():
+    """Démarre un faux serveur Flask pour Render."""
+    app = Flask(__name__)
+    
+    @app.route('/')
+    def home():
+        return "Bot is running!"
+    
+    app.run(host='0.0.0.0', port=10000)
 
 def main():
     """Démarre le bot Telegram."""
     application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler("stock", manual_stock))
-    application.add_handler(CommandHandler("status", status))
     
     # Lancer les tâches de surveillance en arrière-plan
     loop = asyncio.get_event_loop()
     loop.create_task(check_stock())
     loop.create_task(check_stock_opaque())
+    
+    # Lancer le faux serveur Flask en parallèle
+    threading.Thread(target=run_flask, daemon=True).start()
     
     # Démarrer le bot en mode polling
     application.run_polling()
