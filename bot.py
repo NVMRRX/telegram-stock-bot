@@ -77,10 +77,15 @@ async def manual_stock(update: Update, context):
         messages.append(f"{product} : {status}")
     await update.message.reply_text("\n".join(messages))
 
+async def status(update: Update, context):
+    """Commande !status pour vérifier que le bot fonctionne."""
+    await update.message.reply_text("✅ Le bot est en ligne et fonctionne normalement.")
+
 def main():
     """Démarre le bot Telegram."""
     application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler("stock", manual_stock))
+    application.add_handler(CommandHandler("status", status))
     
     # Lancer les tâches de surveillance en arrière-plan
     loop = asyncio.get_event_loop()
