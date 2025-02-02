@@ -3,12 +3,10 @@ import requests
 import asyncio
 from telegram import Bot, Update
 from telegram.ext import Application, CommandHandler
-from flask import Flask
-import threading
 
 # Configuration du bot
 TOKEN = "7869876698:AAFQmdneS0nSyDI36M0wPyAjnxQx3Mw91Mo"
-CHAT_ID = 7924516784  # Ton ID utilisateur Telegram (remplace avec le tien)
+CHAT_ID = 7924516784  # Remplace avec ton ID utilisateur Telegram
 bot = Bot(token=TOKEN)
 
 # URLs des produits
@@ -35,7 +33,7 @@ async def check_stock():
                 in_stock = "Prévenez-moi" not in response.text
                 
                 if in_stock and previous_stock[product]:
-                    message = f"\U0001F525 {product} est disponible ! FONCE !"
+                    message = f"🔥 {product} est disponible ! FONCE !"
                     await bot.send_message(chat_id=CHAT_ID, text=message)
                 previous_stock[product] = in_stock
             
@@ -55,7 +53,7 @@ async def check_stock_opaque():
             in_stock = "Prévenez-moi" not in response.text
             
             if in_stock and previous_stock[PRODUCT_OPAQUE]:
-                message = f"\U0001F525 {PRODUCT_OPAQUE} est disponible ! FONCE !"
+                message = f"🔥 {PRODUCT_OPAQUE} est disponible ! FONCE !"
                 await bot.send_message(chat_id=CHAT_ID, text=message)
             previous_stock[PRODUCT_OPAQUE] = in_stock
         
@@ -79,15 +77,11 @@ async def manual_stock(update: Update, context):
         messages.append(f"{product} : {status}")
     await update.message.reply_text("\n".join(messages))
 
-def run_flask():
-    """Démarre un faux serveur Flask pour Render."""
-    app = Flask(__name__)
-    
-    @app.route('/')
-    def home():
-        return "Bot is running!"
-    
-    app.run(host='0.0.0.0', port=10000)
+async def keep_alive():
+    """Maintient le bot actif en effectuant une tâche inutile toutes les 4 minutes."""
+    while True:
+        logging.info("Keep-alive: Le bot tourne toujours...")
+        await asyncio.sleep(240)  # 240 secondes = 4 minutes
 
 def main():
     """Démarre le bot Telegram."""
@@ -98,9 +92,7 @@ def main():
     loop = asyncio.get_event_loop()
     loop.create_task(check_stock())
     loop.create_task(check_stock_opaque())
-    
-    # Lancer le faux serveur Flask en parallèle
-    threading.Thread(target=run_flask, daemon=True).start()
+    loop.create_task(keep_alive())  # Ajout de la fonction keep-alive
     
     # Démarrer le bot en mode polling
     application.run_polling()
