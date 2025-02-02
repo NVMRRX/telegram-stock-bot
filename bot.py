@@ -6,7 +6,7 @@ from telegram.ext import Application, CommandHandler
 
 # Configuration du bot
 TOKEN = "7869876698:AAFQmdneS0nSyDI36M0wPyAjnxQx3Mw91Mo"
-CHAT_ID = 7924516784  # Remplace avec ton ID utilisateur Telegram
+CHAT_ID = 7924516784  # Ton ID utilisateur Telegram (remplace avec le tien)
 bot = Bot(token=TOKEN)
 
 # URLs des produits
@@ -77,25 +77,27 @@ async def manual_stock(update: Update, context):
         messages.append(f"{product} : {status}")
     await update.message.reply_text("\n".join(messages))
 
-async def keep_alive():
-    """Maintient le bot actif en effectuant une tâche inutile toutes les 4 minutes."""
+async def periodic_check():
+    """Effectue une vérification toutes les 4 minutes sans envoyer de message."""
     while True:
-        logging.info("Keep-alive: Le bot tourne toujours...")
-        await asyncio.sleep(240)  # 240 secondes = 4 minutes
+        await check_stock()
+        await asyncio.sleep(240)  # 4 minutes
 
 def main():
     """Démarre le bot Telegram."""
     application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler("stock", manual_stock))
-    
-    # Lancer les tâches de surveillance en arrière-plan
-    loop = asyncio.get_event_loop()
-    loop.create_task(check_stock())
-    loop.create_task(check_stock_opaque())
-    loop.create_task(keep_alive())  # Ajout de la fonction keep-alive
-    
-    # Démarrer le bot en mode polling
-    application.run_polling()
+
+    # Lancer les tâches de surveillance
+    async def run():
+        await asyncio.gather(
+            check_stock(),
+            check_stock_opaque(),
+            periodic_check(),
+            application.run_polling()
+        )
+
+    asyncio.run(run())  # Exécute correctement les tâches asyncio
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
