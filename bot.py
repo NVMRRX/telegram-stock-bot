@@ -63,6 +63,12 @@ async def check_stock_opaque():
         
         await asyncio.sleep(1800)  # 30 minutes
 
+async def keep_alive():
+    """Boucle qui tourne toutes les 4 minutes pour éviter l’inactivité du bot."""
+    while True:
+        logging.info("Le bot est toujours actif...")
+        await asyncio.sleep(240)  # 4 minutes
+
 async def manual_stock(update: Update, context):
     """Commande !stock pour vérifier manuellement le stock."""
     messages = []
@@ -77,29 +83,18 @@ async def manual_stock(update: Update, context):
         messages.append(f"{product} : {status}")
     await update.message.reply_text("\n".join(messages))
 
-async def periodic_check():
-    """Effectue une vérification toutes les 4 minutes sans envoyer de message."""
-    while True:
-        await check_stock()
-        await asyncio.sleep(240)  # 4 minutes
-
-async def main():
+def main():
     """Démarre le bot Telegram."""
     application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler("stock", manual_stock))
-
-    # Démarrer les tâches en arrière-plan
-    asyncio.create_task(check_stock())
-    asyncio.create_task(check_stock_opaque())
-    asyncio.create_task(periodic_check())
-
-    # Lancer le bot en mode polling (évite le problème de destruction des tâches)
-    await application.run_polling()
+    
+    loop = asyncio.get_event_loop()
+    loop.create_task(check_stock())
+    loop.create_task(check_stock_opaque())
+    loop.create_task(keep_alive())
+    
+    application.run_polling()
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("Bot arrêté proprement.")
+    main()
