@@ -83,22 +83,23 @@ async def periodic_check():
         await check_stock()
         await asyncio.sleep(240)  # 4 minutes
 
-def main():
+async def main():
     """Démarre le bot Telegram."""
     application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler("stock", manual_stock))
 
-    # Lancer les tâches de surveillance
-    async def run():
-        await asyncio.gather(
-            check_stock(),
-            check_stock_opaque(),
-            periodic_check(),
-            application.run_polling()
-        )
+    # Démarrer les tâches en arrière-plan
+    asyncio.create_task(check_stock())
+    asyncio.create_task(check_stock_opaque())
+    asyncio.create_task(periodic_check())
 
-    asyncio.run(run())  # Exécute correctement les tâches asyncio
+    # Lancer le bot en mode polling (évite le problème de destruction des tâches)
+    await application.run_polling()
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    main()
+    
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Bot arrêté proprement.")
